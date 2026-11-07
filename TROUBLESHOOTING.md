@@ -10,7 +10,7 @@ Closing a window is not always the same as quitting the app. Save your work and 
 ./platforms/linux/close-codex.sh
 ```
 
-Without the checkout, use `~/.local/share/codex-intro/close-codex.sh`. The helper identifies the desktop executable rather than trusting its process title. It sends SIGTERM, waits up to 10 seconds, then forces shutdown if needed. `--timeout 5`, `--force`, `--quiet` and `--help` are available. Forced shutdown can lose unsaved work.
+Without the checkout, use `~/.local/share/codex-intro/close-codex.sh`. The helper identifies the desktop executable rather than trusting its process title. It sends SIGTERM, waits up to 10 seconds, then forces shutdown if needed. `--dry-run` shows the detected executable and PIDs without closing anything. `--timeout 5`, `--force`, `--quiet` and `--help` are also available. Forced shutdown can lose unsaved work.
 
 Do not delete `SingletonLock`, reset the profile, or sign out to troubleshoot the mod.
 

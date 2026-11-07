@@ -7,6 +7,7 @@
 #   ./platforms/linux/close-codex.sh --force         # send SIGKILL immediately
 #   ./platforms/linux/close-codex.sh --timeout 5     # wait 5 seconds before forcing shutdown
 #   ./platforms/linux/close-codex.sh --quiet         # suppress messages (errors only)
+#   ./platforms/linux/close-codex.sh --dry-run       # show the target without closing it
 #   ./platforms/linux/close-codex.sh --help          # show this help
 #
 # Optional environment variables:
@@ -22,6 +23,7 @@ set -u
 TIMEOUT=10
 FORCE=0
 QUIET=0
+DRY_RUN=0
 
 usage() {
   cat <<'EOF'
@@ -32,6 +34,7 @@ Usage:
   ./platforms/linux/close-codex.sh --force         # send SIGKILL immediately
   ./platforms/linux/close-codex.sh --timeout 5     # wait 5 seconds before forcing shutdown
   ./platforms/linux/close-codex.sh --quiet         # suppress messages (errors only)
+  ./platforms/linux/close-codex.sh --dry-run       # show the target without closing it
   ./platforms/linux/close-codex.sh --help          # show this help
 
 Optional environment variables:
@@ -62,6 +65,10 @@ while (($#)); do
       QUIET=1
       shift
       ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -90,12 +97,22 @@ is_running() {
 
 # --- Locate the main desktop executable -------------------------------------
 if [[ -z "${CODEX_BIN:-}" ]]; then
-  if command -v chatgpt >/dev/null 2>&1; then
-    launcher="$(readlink -f "$(command -v chatgpt)")"
-    CODEX_BIN="$(dirname "$launcher")/ChatGPT"
-  else
-    CODEX_BIN="/usr/lib/chatgpt/ChatGPT"
-  fi
+  CODEX_BIN="/usr/lib/chatgpt/ChatGPT"
+  # The first chatgpt in PATH can be our ~/.local/bin intro shortcut.
+  # Inspect all launchers without executing them; only a native launcher has
+  # the real ChatGPT binary next to its canonical path.
+  while IFS= read -r command_path; do
+    launcher="$(readlink -f -- "$command_path")" || continue
+    [[ -f "$launcher" ]] || continue
+    if head -c 1024 -- "$launcher" 2>/dev/null | grep -Fq -- '# codex-intro-linux: managed terminal launcher'; then
+      continue
+    fi
+    candidate="$(dirname "$launcher")/ChatGPT"
+    if [[ -f "$candidate" && -x "$candidate" ]]; then
+      CODEX_BIN="$candidate"
+      break
+    fi
+  done < <(type -a -p chatgpt 2>/dev/null)
 fi
 
 if [[ ! -x "$CODEX_BIN" ]]; then
@@ -136,6 +153,13 @@ fi
 
 log "Codex is running (PID: ${main_pids[*]})."
 (( QUIET )) || log "Executable: $CODEX_BIN"
+
+if (( DRY_RUN )); then
+  signal=SIGTERM
+  (( FORCE )) && signal=SIGKILL
+  log "Dry run: would send $signal to PID: ${main_pids[*]}. No signals sent."
+  exit 0
+fi
 
 # --- Close the app ----------------------------------------------------------
 if (( FORCE )); then
