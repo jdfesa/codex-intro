@@ -29,7 +29,7 @@ async function fixture(t, userEntry = true) {
   await mkdir(profile, { recursive: true });
   await writeFile(join(profile, 'session-sentinel'), 'keep-existing-sign-in');
   await writeFile(join(profile, 'customization-sentinel'), 'keep-wallpaper-settings');
-  return { paths, desktopPath, profile, opts: { paths, root, refreshCache: () => {} } };
+  return { home, paths, desktopPath, profile, opts: { paths, root, refreshCache: () => {} } };
 }
 
 test('desktop commands quote paths without shell evaluation and preserve URL fields', () => {
@@ -96,7 +96,7 @@ test('uninstall removes only the override when the original is system-provided',
 
 test('schema-1 flat-layout installations update without changing stable wrappers or first backups', async t => {
   for (const userEntry of [true, false]) {
-    const { paths, desktopPath, opts } = await fixture(t, userEntry);
+    const { home, paths, desktopPath, opts } = await fixture(t, userEntry);
     const originalUser = userEntry ? { data: Buffer.from(original).toString('base64'), mode: 0o640 } : null;
     const entry = integratedEntry(original, {
       launcher: join(paths.installDir, 'launch.sh'), uninstaller: join(paths.installDir, 'uninstall.sh'),
@@ -116,7 +116,7 @@ test('schema-1 flat-layout installations update without changing stable wrappers
     assert.equal(await readFile(desktopPath, 'utf8'), entry, 'Stable installed entry points keep desktop bytes unchanged.');
     await assert.rejects(access(join(paths.installDir, 'extension')), { code: 'ENOENT' });
     const env = {
-      ...process.env, XDG_DATA_HOME: paths.dataHome, XDG_STATE_HOME: paths.stateHome,
+      ...process.env, HOME: home, XDG_DATA_HOME: paths.dataHome, XDG_STATE_HOME: paths.stateHome,
       DBUS_SESSION_BUS_ADDRESS: 'unix:path=/nonexistent', // Never notify the real desktop from a fixture.
     };
     const status = spawnSync(process.execPath, [join(paths.installDir, 'platforms/linux/integration.mjs'), 'status', '--json'], { env, encoding: 'utf8' });

@@ -18,6 +18,7 @@ const env = {
   XDG_CONFIG_HOME: config, XDG_DATA_HOME: join(home, '.local/share'),
   XDG_STATE_HOME: join(home, '.local/state'), XDG_CACHE_HOME: join(home, '.cache'),
   XDG_SESSION_TYPE: 'x11',
+  PATH: `${join(home, '.local/bin')}:${process.env.PATH}`,
 };
 delete env.WAYLAND_DISPLAY;
 const paths = integrationPaths({ home, env });
@@ -50,6 +51,10 @@ async function profilePid() {
   } catch { /* Startup and shutdown may temporarily remove the singleton. */ }
 }
 async function running(candidate) { try { await readlink(`/proc/${candidate}/exe`); return true; } catch { return false; } }
+function openCommand(name) {
+  const result = spawnSync('/bin/sh', ['-c', name], { env, cwd: '/', stdio: 'ignore', timeout: 10000 });
+  assert.equal(result.status, 0, result.error?.message);
+}
 function openIcon() {
   // A plain desktop app can inherit GIO's stdout; do not wait for its pipe EOF.
   const result = spawnSync('gio', ['launch', desktopPath], { env, stdio: 'ignore', timeout: 10000 });
@@ -67,8 +72,9 @@ try {
   await install({ paths, env, refreshCache: () => {} });
   const validation = spawnSync('desktop-file-validate', [desktopPath], { encoding: 'utf8' });
   assert.equal(validation.status, 0, validation.stdout + validation.stderr);
-  for (let cycle = 1; cycle <= 2; cycle++) {
-    openIcon();
+  for (let cycle = 1; cycle <= 3; cycle++) {
+    const open = cycle === 1 ? openIcon : () => openCommand(cycle === 2 ? 'gpt' : 'chatgpt');
+    open();
     await until(async () => (await log()).split('Startup animation is playing.').length - 1 >= cycle, 'installed intro playback');
     pid = await until(profilePid, 'test singleton');
     const appStat = (await readFile(`/proc/${pid}/stat`, 'utf8')).split(') ')[1].split(' ');
@@ -77,7 +83,7 @@ try {
     assert.equal(Number(holderStat[2]), holderPid, 'Pipe holder must own its process group.');
     assert.equal(Number(holderStat[3]), holderPid, 'Pipe holder must own its session.');
     const firstPid = pid;
-    openIcon();
+    open();
     await delay(800);
     assert.equal(await profilePid(), firstPid, 'A second icon click must reuse the existing app.');
     assert.equal((await log()).split('Startup animation is playing.').length - 1, cycle);
@@ -95,7 +101,7 @@ try {
   assert.ok(!command.includes('--remote-debugging-pipe'), 'Original launcher must open without debugging flags.');
   assert.equal(await log(), introLog, 'Uninstalled launch must not invoke the intro runtime.');
   await closeTestApp();
-  console.log('PASS: installed icon twice, existing-instance activation, full playback, shutdown, exact uninstall and normal reopen.');
+  console.log('PASS: installed icon, gpt and chatgpt cold starts from /, existing-instance activation, full playback, shutdown, exact uninstall and normal reopen.');
   console.log('PASS: same profile and session sentinel preserved; source checkout was not needed for launch or uninstall.');
   passed = true;
 } finally {

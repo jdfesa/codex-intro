@@ -10,6 +10,8 @@ import { integratedEntry, mainValues, parseExec } from './desktop-entry.mjs';
 
 const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const marker = 'codex-intro-linux';
+const commandMarker = '# codex-intro-linux: managed terminal launcher';
+const commandNames = ['gpt', 'chatgpt'];
 const runtimeFiles = [
   'shared/web/index.html', 'shared/web/style.css', 'shared/web/animation.js', 'shared/web/image-settings.js', 'platforms/linux/close-codex.sh',
   'shared/web/assets/artificial-girl-avatar.jpg', 'shared/web/assets/artwork.jpg', 'shared/web/assets/contours.js',
@@ -27,7 +29,7 @@ export function integrationPaths({ env = process.env, home = homedir() } = {}) {
   const dataHome = env.XDG_DATA_HOME && isAbsolute(env.XDG_DATA_HOME) ? env.XDG_DATA_HOME : join(home, '.local/share');
   const stateHome = env.XDG_STATE_HOME && isAbsolute(env.XDG_STATE_HOME) ? env.XDG_STATE_HOME : join(home, '.local/state');
   const dataDirs = (env.XDG_DATA_DIRS || '/usr/local/share:/usr/share').split(delimiter).filter(isAbsolute);
-  return { dataHome, stateHome, dataDirs, installDir: join(dataHome, 'codex-intro'), applications: join(dataHome, 'applications') };
+  return { dataHome, stateHome, dataDirs, binDir: join(home, '.local/bin'), installDir: join(dataHome, 'codex-intro'), applications: join(dataHome, 'applications') };
 }
 
 async function regularFile(path) {
@@ -79,10 +81,36 @@ export async function resolveExecutable(command, env = process.env) {
   for (const candidate of candidates) {
     try {
       await access(candidate, constants.X_OK);
-      if ((await stat(candidate)).isFile()) return resolve(candidate);
+      const info = await stat(candidate);
+      if (!info.isFile()) continue;
+      // PATH now contains our chatgpt command. Never resolve it as the native app,
+      // including on updates and manual launches, or the launcher would recurse.
+      if (info.size < 8192 && (await readFile(candidate, 'utf8')).includes(commandMarker)) continue;
+      return resolve(candidate);
     } catch { /* Try the next PATH directory. */ }
   }
   throw new Error(`Desktop executable not found: ${command}`);
+}
+
+async function commandPlan(paths, existing) {
+  const data = Buffer.from(`#!/bin/sh\n${commandMarker}\nexec ${shellQuote(join(paths.installDir, 'launch.sh'))} "$@"\n`);
+  const commands = [];
+  for (const name of commandNames) {
+    const path = join(paths.binDir, name);
+    const current = await regularFile(path);
+    const previous = existing?.commandLaunchers?.find(command => command.name === name);
+    if (previous && current && hash(current.data) !== previous.installedHash) {
+      throw new Error(`Terminal launcher changed after installation. Refusing to overwrite your edits: ${path}`);
+    }
+    const original = previous ? previous.original : (current ? { data: current.data.toString('base64'), mode: current.mode } : null);
+    commands.push({ path, current, data, manifest: { name, original, installedHash: hash(data) } });
+  }
+  return commands;
+}
+
+async function restoreFile(path, original) {
+  if (original) await atomicWrite(path, original.data, original.mode);
+  else await rm(path, { force: true });
 }
 
 function refresh(applications) {
@@ -114,13 +142,14 @@ export async function install({ paths = integrationPaths(), root = sourceRoot, n
     const values = mainValues(template);
     const tokens = parseExec(values.Exec);
     const executable = await resolveExecutable(tokens[0].replaceAll('%%', '%'), env);
+    const commands = await commandPlan(paths, existing);
     const entry = integratedEntry(template, {
       launcher: join(paths.installDir, 'launch.sh'), uninstaller: join(paths.installDir, 'uninstall.sh'),
     });
     const manifest = {
       application: marker, version: 1, desktopId, originalUser: original, template,
       executable, tokens, values: { Name: values.Name, Icon: values.Icon, desktopPath },
-      installedDesktopHash: hash(entry), node,
+      installedDesktopHash: hash(entry), node, commandLaunchers: commands.map(command => command.manifest),
     };
     const staging = await mkdtemp(join(paths.dataHome, '.codex-intro-stage-'));
     const rollback = paths.installDir + '.rollback-' + randomUUID();
@@ -142,15 +171,27 @@ export async function install({ paths = integrationPaths(), root = sourceRoot, n
       await mkdir(paths.applications, { recursive: true });
       if (existing) { await rename(paths.installDir, rollback); movedOld = true; }
       await rename(staging, paths.installDir); swapped = true;
-      try { await atomicWrite(desktopPath, entry, current?.mode ?? 0o644); }
+      const writtenCommands = [];
+      let desktopWritten = false;
+      try {
+        await atomicWrite(desktopPath, entry, current?.mode ?? 0o644);
+        desktopWritten = true;
+        await mkdir(paths.binDir, { recursive: true });
+        for (const command of commands) {
+          await atomicWrite(command.path, command.data, 0o755);
+          writtenCommands.push(command);
+        }
+      }
       catch (error) {
+        for (const command of writtenCommands.reverse()) await restoreFile(command.path, command.current);
+        if (desktopWritten) await restoreFile(desktopPath, current);
         await rm(paths.installDir, { recursive: true, force: true }); swapped = false;
         if (movedOld) { await rename(rollback, paths.installDir); movedOld = false; }
         throw error;
       }
       if (movedOld) await rm(rollback, { recursive: true, force: true });
       refreshCache(paths.applications);
-      return { installed: true, updated: !!existing, installDir: paths.installDir, desktopPath };
+      return { installed: true, updated: !!existing, installDir: paths.installDir, desktopPath, commands: commands.map(command => command.path) };
     } finally {
       if (!swapped) await rm(staging, { recursive: true, force: true });
       // Keep a rollback folder if an unexpected filesystem failure prevented recovery.
@@ -167,6 +208,19 @@ export async function uninstall({ paths = integrationPaths(), refreshCache = ref
     const current = await regularFile(desktopPath);
     if (current && hash(current.data) !== state.installedDesktopHash) {
       throw new Error('Desktop launcher changed after installation. Your edits and backup were preserved; restore or move the edited launcher before uninstalling.');
+    }
+    const commands = [];
+    for (const command of state.commandLaunchers ?? []) {
+      if (!commandNames.includes(command.name)) throw new Error('Unrecognized terminal launcher in installation manifest.');
+      const path = join(paths.binDir, command.name);
+      const currentCommand = await regularFile(path);
+      if (currentCommand && hash(currentCommand.data) !== command.installedHash) {
+        throw new Error(`Terminal launcher changed after installation. Your edits and backup were preserved: ${path}`);
+      }
+      commands.push({ path, original: command.original });
+    }
+    for (const command of commands) {
+      await restoreFile(command.path, command.original ? { data: Buffer.from(command.original.data, 'base64'), mode: command.original.mode } : null);
     }
     if (state.originalUser) await atomicWrite(desktopPath, Buffer.from(state.originalUser.data, 'base64'), state.originalUser.mode);
     else await rm(desktopPath, { force: true });
@@ -192,10 +246,11 @@ async function cli(args) {
   let result;
   if (positionals[0] === 'status') {
     const state = await readInstallation(paths);
-    result = { installed: !!state, installDir: paths.installDir, desktopPath: state ? join(paths.applications, state.desktopId) : null };
+    result = { installed: !!state, installDir: paths.installDir, desktopPath: state ? join(paths.applications, state.desktopId) : null,
+      commands: (state?.commandLaunchers ?? []).map(command => join(paths.binDir, command.name)) };
   } else if (positionals[0] === 'install') result = await install({ paths, desktopId: values['desktop-id'] });
   else result = await uninstall({ paths });
-  const message = result.installed ? `Codex Intro is installed. Open your normal app icon.\nRuntime: ${paths.installDir}\nUninstall: ${join(paths.installDir, 'uninstall.sh')}` : 'Codex Intro is not installed. The original launcher is active.';
+  const message = result.installed ? `Codex Intro is installed. Open your normal app icon, or run gpt / chatgpt.\nCommands: ${(result.commands ?? []).join(', ') || 'not installed; rerun install'}\nKeep ${paths.binDir} before the system directories in PATH.\nRuntime: ${paths.installDir}\nUninstall: ${join(paths.installDir, 'uninstall.sh')}` : 'Codex Intro is not installed. The original launcher is active.';
   console.log(values.json ? JSON.stringify(result) : message + '\nApp profile, conversations and sign-in are unchanged. Fully quit and reopen to switch appearance.');
   if (values.notify) spawnSync('notify-send', ['Codex Intro', message.split('\n')[0]], { stdio: 'ignore' });
 }

@@ -7,6 +7,7 @@ import { pageTarget } from '../../shared/desktop/cdp.mjs';
 import { connectPipe } from './cdp-pipe.mjs';
 import { hasRunningDesktop } from './profile.mjs';
 import { buildInjection } from '../../shared/desktop/payload.mjs';
+import { resolveExecutable } from './integration.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const usage = 'Usage: node platforms/linux/run.mjs [--app /absolute/path/to/chatgpt] [--ui-scale 80-100]';
@@ -119,7 +120,7 @@ export async function runLauncher(args, { appArgs = [], onReady = () => {}, onEx
   if (!app && await hasRunningDesktop()) {
     throw new Error('ChatGPT/Codex is already running. Use Quit in the app menu, not just Close Window, then run this command again from a separate terminal.');
   }
-  const executable = app ?? 'chatgpt';
+  const executable = app ?? await resolveExecutable('chatgpt');
   const source = await buildInjection(root);
   const child = spawn(executable, [...desktopArgs({ app }), ...appArgs], {
     detached: true,
