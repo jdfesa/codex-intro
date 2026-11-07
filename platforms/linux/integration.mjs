@@ -13,6 +13,8 @@ const marker = 'codex-intro-linux';
 const runtimeFiles = [
   'shared/web/index.html', 'shared/web/style.css', 'shared/web/animation.js', 'shared/web/image-settings.js', 'platforms/linux/close-codex.sh',
   'shared/web/assets/artificial-girl-avatar.jpg', 'shared/web/assets/artwork.jpg', 'shared/web/assets/contours.js',
+  'shared/web/fonts.css', 'shared/web/assets/fonts/special-elite-regular.ttf', 'shared/web/assets/fonts/ocr-a.ttf',
+  'shared/web/assets/fonts/special-elite-license.txt', 'shared/web/assets/fonts/ocr-a-notice.txt',
   'shared/desktop/cdp.mjs', 'shared/desktop/payload.mjs', 'shared/desktop/renderer.mjs', 'shared/desktop/wallpaper.css',
   'platforms/linux/run.mjs', 'platforms/linux/profile.mjs', 'platforms/linux/cdp-pipe.mjs',
   'platforms/linux/desktop-entry.mjs', 'platforms/linux/integration.mjs', 'platforms/linux/installed-launcher.mjs',

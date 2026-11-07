@@ -1,0 +1,15 @@
+/* Self-hosted intro fonts. Desktop injection loads the same bytes via FontFace. */
+@font-face {
+  font-family: "Special Elite";
+  src: url("assets/fonts/special-elite-regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "OCR A";
+  src: url("assets/fonts/ocr-a.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}

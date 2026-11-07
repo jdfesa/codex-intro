@@ -98,7 +98,11 @@
       ink.beginPath();ink.moveTo(cx+Math.sin(a)*r0,cy-Math.cos(a)*r0);ink.lineTo(cx+Math.sin(a)*r1,cy-Math.cos(a)*r1);ink.stroke();
     }
     ink.globalAlpha=1;ink.strokeRect(border.x,border.y,border.w,border.h);
-    ink.drawImage($('.avatar'),avatar.x,avatar.y,avatar.w,avatar.h);
+    // Match the avatar's centered cover crop, including landscape source images.
+    const avatarImage=$('.avatar'),avatarScale=Math.max(avatar.w/avatarImage.naturalWidth,avatar.h/avatarImage.naturalHeight);
+    const sourceWidth=avatar.w/avatarScale,sourceHeight=avatar.h/avatarScale;
+    ink.drawImage(avatarImage,(avatarImage.naturalWidth-sourceWidth)/2,(avatarImage.naturalHeight-sourceHeight)/2,
+      sourceWidth,sourceHeight,avatar.x,avatar.y,avatar.w,avatar.h);
     // Neutralize the bitmap once, not with an expensive live blur/filter on every frame.
     ink.globalCompositeOperation='saturation';ink.fillStyle='#999';
     ink.fillRect(avatar.x,avatar.y,avatar.w,avatar.h);ink.globalCompositeOperation='source-over';
@@ -311,10 +315,10 @@
   const textFields=[
     {key:'introTitle',input:'#intro-title',target:'.boot-title',fallback:'ARTIFICIAL GIRL',limit:16},
     {key:'introCaption',input:'#intro-caption',target:'.boot-caption',fallback:'CODEX INITIALIZE / TYPE-0',limit:48},
-    {key:'artworkSubtitle',input:'#artwork-subtitle',target:'#subtitle',fallback:'Ready to build.',limit:60}
+    {key:'artworkSubtitle',input:'#artwork-subtitle',target:'#subtitle',fallback:'Ready to use.',limit:60}
   ];
   // Normalize only the former built-in defaults; preserve every custom value.
-  const legacyDefaults={introTitle:['\u98de\u884c\u96ea\u7ed2','CODEX EVIL'],artworkSubtitle:['\u5e7d\u7075\u6765\u5230\u2026\u4f60\u8eab\u8fb9\uff5e']};
+  const legacyDefaults={introTitle:['\u98de\u884c\u96ea\u7ed2','CODEX EVIL'],artworkSubtitle:['\u5e7d\u7075\u6765\u5230\u2026\u4f60\u8eab\u8fb9\uff5e','Ready to build.']};
   const textValue=(images,field)=>typeof images[field.key]==='string'&&!legacyDefaults[field.key]?.includes(images[field.key])?images[field.key].slice(0,field.limit):field.fallback;
   function thumbnails(){
     $('#avatar-preview').src=pendingImages.avatar||assets.avatar;
@@ -378,6 +382,11 @@
     finally{setBusy(false);}
   });
   window.imageSettings.load().catch(()=>({})).then(async images=>{
+    // Wait before layout/canvas capture so the identity never switches typefaces mid-intro.
+    const fonts=window.AEMEATH_FONTS_READY||Promise.all([
+      document.fonts.load('400 16px "Special Elite"'),document.fonts.load('400 16px "OCR A"')
+    ]);
+    await fonts.catch(()=>console.warn('Intro fonts unavailable; using local fallback fonts.'));
     savedImages=images;
     try{await applyImages(images);}catch{savedImages={};await applyImages({});}
     ready();

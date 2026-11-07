@@ -1,4 +1,4 @@
-/* One stationary wallpaper with quiet letterbox texture. No blur or frame loop.
+/* One stationary wallpaper with a fragmented letterbox signal. No blur or frame loop.
    Layout anchors and token names verified against Codex 26.924.22138.
    Backgrounds only: never override host fonts, icon sizes, spacing, zoom or layout.
    The intro's typography and motion stay inside its temporary iframe. */
@@ -29,16 +29,18 @@ html[data-aemeath-skin] body{
   background-image:
     linear-gradient(rgb(var(--aemeath-base)/var(--aemeath-wash,.58)),rgb(var(--aemeath-base)/var(--aemeath-wash,.58))),
     var(--aemeath-wallpaper),
-    linear-gradient(90deg,transparent 3%,rgb(194 112 156/.16) 3% 7%,transparent 7% 42%,rgb(194 112 156/.10) 42% 48%,transparent 48% 93%,rgb(105 198 213/.12) 93% 98%,transparent 98%),
-    linear-gradient(90deg,transparent 12%,rgb(105 198 213/.10) 12% 16%,transparent 16% 68%,rgb(194 112 156/.14) 68% 81%,transparent 81%),
-    linear-gradient(90deg,transparent 4%,rgb(105 198 213/.12) 4% 11%,transparent 11% 54%,rgb(194 112 156/.12) 54% 58%,transparent 58% 92%,rgb(194 112 156/.14) 92% 97%,transparent 97%),
-    linear-gradient(90deg,transparent 7%,rgb(194 112 156/.12) 7% 9%,transparent 9% 24%,rgb(105 198 213/.10) 24% 39%,transparent 39% 87%,rgb(105 198 213/.10) 87% 94%,transparent 94%),
-    repeating-linear-gradient(0deg,transparent 0 5px,rgb(173 140 158/.042) 5px 6px),
-    linear-gradient(135deg,rgb(88 49 77/.10),transparent 47%,rgb(41 78 89/.12))!important;
-  /* Only the photograph uses contain. All other layers stay viewport-bound. */
-  background-size:100% 100%,contain,100% 2px,100% 1px,100% 2px,100% 1px,100% 100%,100% 100%!important;
-  background-position:center,center,center 17%,center 29%,center 73%,center 89%,center,center!important;
-  background-repeat:no-repeat!important;background-attachment:fixed!important;
+    conic-gradient(from 270deg at 42% 7%,rgb(105 198 213/.52) 0 90deg,transparent 90deg 360deg),
+    conic-gradient(from 270deg at 18% 15%,rgb(194 112 156/.44) 0 90deg,transparent 90deg 360deg),
+    conic-gradient(from 270deg at 65% 4%,rgb(168 162 184/.28) 0 90deg,transparent 90deg 360deg),
+    conic-gradient(from 270deg at 33% 12%,rgb(118 83 143/.48) 0 90deg,transparent 90deg 360deg),
+    repeating-linear-gradient(0deg,transparent 0 3px,rgb(173 140 158/.11) 3px 4px),
+    linear-gradient(120deg,rgb(88 49 77/.45),rgb(30 43 56/.42) 47%,rgb(41 78 89/.43))!important;
+  /* Offset tiles fill margins of any height, rather than placing four edge lines.
+     Only the opaque photograph uses contain; it masks every signal layer below. */
+  background-size:100% 100%,contain,clamp(180px,24vw,340px) 57px,clamp(240px,31vw,460px) 83px,clamp(160px,19vw,290px) 109px,clamp(320px,43vw,620px) 137px,100% 100%,100% 100%!important;
+  background-position:center,center,17px 11px,-43px 37px,71px -17px,-101px 67px,center,center!important;
+  background-repeat:no-repeat,no-repeat,repeat,repeat,repeat,repeat,no-repeat,no-repeat!important;
+  background-attachment:fixed!important;
 }
 html[data-aemeath-skin] :is(#root,[data-app-shell-frame],[data-app-shell-page-surface=true]){background:transparent!important}
 html[data-aemeath-skin] .app-shell-left-panel{background:rgb(var(--aemeath-base)/.18)!important}

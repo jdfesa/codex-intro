@@ -33,7 +33,7 @@ test('macOS targets package canonical shared resources with stable identities', 
     const plist = await readFile(join(bundle, 'Info.plist'), 'utf8');
     assert.ok(plist.includes(target === 'launcher' ? 'local.aemeath.extension' : 'local.aemeath.startup'));
     await access(join(bundle, 'MacOS', name));
-    for (const file of ['index.html', 'style.css', 'animation.js', 'image-settings.js', 'assets/artificial-girl-avatar.jpg', 'assets/artwork.jpg', 'assets/contours.js']) {
+    for (const file of ['index.html', 'style.css', 'fonts.css', 'animation.js', 'image-settings.js', 'assets/artificial-girl-avatar.jpg', 'assets/artwork.jpg', 'assets/contours.js', 'assets/fonts/special-elite-regular.ttf', 'assets/fonts/ocr-a.ttf', 'assets/fonts/special-elite-license.txt', 'assets/fonts/ocr-a-notice.txt']) {
       assert.deepEqual(await readFile(join(runtime, 'shared/web', file)), await readFile(join(root, 'shared/web', file)));
     }
     await assert.rejects(access(join(runtime, 'platforms/linux')), { code: 'ENOENT' });

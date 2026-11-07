@@ -52,6 +52,15 @@ export function installRenderer(payload, mount) {
         // No inline script, eval, network server, or CSP change is needed.
         doc.documentElement.innerHTML=payload.html;doc.documentElement.lang='en';
         const css=doc.createElement('style');css.textContent=payload.css;doc.head.appendChild(css);
+        // Binary FontFace sources avoid network requests and inherited font-src URL restrictions.
+        // Faces belong to the temporary document, never to the host application's font set.
+        win.AEMEATH_FONTS_READY=Promise.all(payload.fonts.map(async font=>{
+          const bytes=Uint8Array.from(atob(font.base64),character=>character.charCodeAt(0));
+          const face=new win.FontFace(font.family,bytes.buffer,{style:'normal',weight:'400'});
+          doc.fonts.add(face);await face.load();
+        }));
+        // Settings storage can resolve later; mark rejection handled immediately.
+        win.AEMEATH_FONTS_READY.catch(()=>{});
         win.AEMEATH_EXTERNAL=true;win.AEMEATH_ASSETS=payload.assets;win.AEMEATH_OPEN_SETTINGS=settings;
         // The function is compiled in the parent realm. A closure-bound bridge
         // preserves frame identity without weakening postMessage source checks.

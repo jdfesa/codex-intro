@@ -47,12 +47,16 @@ test('artwork stays uncropped in wallpaper, intro, contours and custom imports',
   const animation = await read('shared/web/animation.js');
   assert.match(animation, /scale=Math\.min\(bounds.width\/1536,bounds.height\/1024\)/);
   assert.match(animation, /art.style.transform='none'/);
+  assert.match(animation, /avatarScale=Math.max\(avatar.w\/avatarImage.naturalWidth,avatar.h\/avatarImage.naturalHeight\)/);
   assert.match(await read('shared/web/image-settings.js'), /kind==='avatar'\?Math.max:Math.min/);
 });
 
 test('letterbox glitch sits underneath the photo and has no motion or filters', async () => {
   const css = await read('shared/desktop/wallpaper.css');
-  assert.match(css, /var\(--aemeath-wallpaper\),\s*linear-gradient/);
-  assert.match(css, /repeating-linear-gradient\(0deg,transparent 0 5px/);
+  assert.match(css, /var\(--aemeath-wallpaper\),\s*conic-gradient/);
+  assert.equal((css.match(/conic-gradient\(/g) || []).length, 4, 'Four offset fragment fields should fill the margins.');
+  assert.match(css, /repeating-linear-gradient\(0deg,transparent 0 3px/);
+  assert.match(css, /background-repeat:no-repeat,no-repeat,repeat,repeat,repeat,repeat,no-repeat,no-repeat/);
+  assert.match(css, /clamp\(180px,24vw,340px\) 57px/);
   assert.doesNotMatch(css, /(?:^|[;{])\s*(?:animation(?:-[\w-]+)?|transition(?:-[\w-]+)?|filter|backdrop-filter)\s*:|@keyframes/i);
 });

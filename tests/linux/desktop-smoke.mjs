@@ -119,6 +119,9 @@ try {
       title: doc.querySelector('.boot-title').textContent,
       avatar: [doc.querySelector('.avatar').naturalWidth, doc.querySelector('.avatar').naturalHeight],
       avatarFit: overlay.contentWindow.getComputedStyle(doc.querySelector('.avatar')).objectFit,
+      titleFont: overlay.contentWindow.getComputedStyle(doc.querySelector('.boot-title')).fontFamily,
+      statusFont: overlay.contentWindow.getComputedStyle(doc.querySelector('.subtitle')).fontFamily,
+      loadedFonts: Array.from(doc.fonts,face=>({family:face.family,status:face.status})),
       imageFit: overlay.contentWindow.getComputedStyle(doc.querySelector('.artwork')).objectFit,
       contourFit: overlay.contentWindow.getComputedStyle(doc.querySelector('.line-art')).objectFit,
       language: doc.documentElement.lang,
@@ -130,10 +133,15 @@ try {
   assert.equal(frame.title, 'ARTIFICIAL GIRL');
   assert.ok(frame.avatar.every(dimension => dimension > 0), 'The bundled avatar must load, regardless of source aspect ratio.');
   assert.equal(frame.avatarFit, 'cover');
+  assert.ok(frame.titleFont.startsWith('"Special Elite"'), 'Opening title must use Special Elite.');
+  assert.ok(frame.statusFont.startsWith('"OCR A"'), 'Status subtitle must use OCR A.');
+  for (const family of ['Special Elite', 'OCR A']) {
+    assert.ok(frame.loadedFonts.some(face=>face.family===family&&face.status==='loaded'), `${family} must load inside the iframe.`);
+  }
   assert.equal(frame.imageFit, 'contain');
   assert.equal(frame.contourFit, 'contain');
   assert.equal(frame.language, 'en');
-  assert.equal(frame.subtitle, 'Ready to build.');
+  assert.equal(frame.subtitle, 'Ready to use.');
   assert.equal(frame.english, true);
   const elapsed = () => evaluate(() => Number(document.getElementById('aemeath-extension-overlay')?.contentDocument.querySelector('.window')?.dataset.elapsed ?? 99));
   for (const [time, name] of [[2.8, '02-identity'], [5.7, '03-contours'], [8.5, '04-artwork']]) {
@@ -150,7 +158,7 @@ try {
   assert.deepEqual(await evaluate(() => window.__nativeSmokeMeasure()), baseline, 'Wallpaper changed native sizing.');
   await screenshot('05-wallpaper');
   const responsive = [];
-  for (const [width, height] of [[1280, 720], [900, 900], [600, 1000], [3440, 1440], [390, 844]]) {
+  for (const [width, height] of [[1280, 720], [900, 900], [905, 990], [600, 1000], [3440, 1440], [390, 844]]) {
     await pipe.call('Emulation.setDeviceMetricsOverride', {
       width, height, deviceScaleFactor: 1, mobile: false,
     }, { sessionId });
@@ -173,7 +181,8 @@ try {
     assert.deepEqual(fit.viewport, [width, height]);
     assert.deepEqual(fit.size.split(',').slice(0, 2).map(value => value.trim()), ['100% 100%', 'contain']);
     assert.deepEqual(fit.position.split(',').slice(0, 2).map(value => value.trim()), ['50% 50%', '50% 50%']);
-    assert.ok(fit.repeat.split(',').every(value => value.trim() === 'no-repeat'));
+    assert.deepEqual(fit.repeat.split(',').map(value => value.trim()),
+      ['no-repeat', 'no-repeat', 'repeat', 'repeat', 'repeat', 'repeat', 'no-repeat', 'no-repeat']);
     assert.equal(fit.size.split(',').length, 8, 'Expected wash, photo and six stationary texture layers.');
     assert.equal(fit.rootFont, baseline.nodes[0].fontSize);
     assert.equal(fit.rootZoom, baseline.nodes[0].zoom);
@@ -220,7 +229,7 @@ try {
   assert.deepEqual(await evaluate(() => window.__nativeSmokeMeasure()), baseline, 'Restore changed native sizing.');
   await screenshot('06-restored');
   await writeFile(join(output, 'metrics.json'), JSON.stringify({ baseline, during, frame, state, responsive, stationary, restored }, null, 2));
-  console.log('PASS: Artificial Girl avatar, full intro, native sizing, five responsive wallpaper ratios, settings and Restore.');
+  console.log('PASS: Artificial Girl avatar, full intro, native sizing, six responsive wallpaper ratios, settings and Restore.');
   console.log('Screenshots and metrics:', output);
 } finally {
   pipe.close();
