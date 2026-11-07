@@ -53,3 +53,6 @@ body.embedded .end-screen,body.native.launch-mode.closing .end-screen{visibility
 @media(max-width:600px){.identity{width:min(53%,72vh)}}
 .avatar{image-rendering:auto}
 #artwork-preview{object-fit:contain;background:#08060d}
+/* Additive, non-interactive startup layer; animation.js supplies its only clock. */
+.startup-code{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;contain:strict}
+.artwork-motion{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#08060d;opacity:0;pointer-events:none}

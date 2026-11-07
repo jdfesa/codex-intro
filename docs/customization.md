@@ -24,6 +24,8 @@ Wallpaper, intro artwork and contour canvases share centered **contain** sizing.
 
 The default **Artificial Girl** avatar uses a cybernetic workstation illustration. See [asset notes](artificial-girl-avatar.md) and [credits](references.md). It is not the installed app icon.
 
+The default intro includes decorative code, cyan/violet traces and a bundled six-second silent portrait clip. The complete sequence lasts about 14.2 seconds. The clip plays once at normal speed, then returns to the original JPG; it never becomes the persistent wallpaper. Custom background images disable the default clip rather than combining unrelated artwork. Reduced-motion mode uses static code without light traces or video and retains the 12-second still sequence. Unsupported or unavailable media also falls back to the still.
+
 Host font sizes, icons, spacing and saved zoom are unchanged by default. Intro CSS is isolated in a temporary iframe; only decorative backgrounds and transparency remain after playback. An optional manual Linux `--ui-scale` setting is separate from visual customization.
 
 The opening title uses **Special Elite**; the classification caption and **Ready to use.** subtitle use **OCR A**. These fonts are bundled locally and apply to the intro only. See [typography and font notices](fonts.md).

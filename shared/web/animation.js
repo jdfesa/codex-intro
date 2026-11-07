@@ -2,10 +2,13 @@
   'use strict';
   const $ = selector => document.querySelector(selector);
   const duration = 12000;
+  let totalDuration = duration;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const startupCode = window.startupCode.create($('.startup-code'), { reduced });
+  const portraitMotion = window.startupMotion.create($('.artwork-motion'), { reduced });
   const native = !window.AEMEATH_EXTERNAL && Boolean(window.webkit?.messageHandlers?.launcher);
   const embedded = window.parent!==window && (window.AEMEATH_EXTERNAL || new URLSearchParams(location.search).has('embedded'));
-  const assets=window.AEMEATH_ASSETS||{artwork:'assets/artwork.jpg',avatar:'assets/artificial-girl-avatar.jpg'};
+  const assets=window.AEMEATH_ASSETS||{artwork:'assets/artwork.jpg',avatar:'assets/artificial-girl-avatar.jpg',motion:'media/intro-character.mp4'};
   if(embedded)document.body.classList.add('embedded');
   const root = $('.window'), art = $('.artwork'), scene = $('.scene');
   const hud = $('.hud'), intro = $('.intro'), sweep = $('.light-sweep');
@@ -27,7 +30,7 @@
   });
   const milestones = [[0,0],[.12,.06],[.35,.41],[.56,.76],[.66,.924],[.72,.97],[.77,1],[1,1]];
   function progress(t) {
-    const p = t / duration;
+    const p = t / totalDuration;
     for (let i=1;i<milestones.length;i++) {
       if (p <= milestones[i][0]) {
         const [a,x] = milestones[i-1], [b,y] = milestones[i];
@@ -190,16 +193,19 @@
     tick.style.opacity=i%5===0?'.9':'.55';$('.ticks').appendChild(tick);
   }
   function render(t) {
-    const s=t/1000, p=progress(t), color=smooth((s-7.18)/.24), collapse=smooth((s-11)/.3), pinch=smooth((s-11.65)/.35);
+    const s=t/1000, ending=s-(totalDuration-duration)/1000, closeAt=totalDuration/1000-1;
+    const p=progress(t), color=smooth((s-7.18)/.24), collapse=smooth((ending-11)/.3), pinch=smooth((ending-11.65)/.35);
+    startupCode.render(s<=7.43?s:7.43+(s-7.43)*(11-7.43)/(closeAt-7.43));
+    portraitMotion.render(s, playing);
     const dissolve=smooth((s-4.18)/.56);
-    const closing=s>=11;
+    const closing=ending>=11;
     root.classList.toggle('closing',closing);document.body.classList.toggle('closing',closing);
     scene.style.opacity=collapse>=1?'0':'1';
     scene.style.transform=`scaleY(${Math.max(.001,1-collapse)})`;
     scene.style.filter=closing?`brightness(${1+collapse*3})`:'none';
     $('.transition-flash').style.opacity=String(reduced?0:smooth((s-7.18)/.035)*(1-smooth((s-7.22)/.2))*.8);
     const line=$('.shutter-line');
-    line.style.opacity=String(smooth((s-11.15)/.15)*(1-smooth((s-11.96)/.04)));
+    line.style.opacity=String(smooth((ending-11.15)/.15)*(1-smooth((ending-11.96)/.04)));
     line.style.transform=`scaleX(${1-pinch})`;
     if(closing&&!revealed){revealed=true;send('reveal');}
 
@@ -238,22 +244,22 @@
       node.style.opacity=String(color*(.12+.28*(.5+.5*Math.sin(s*.9+i))));
       node.style.transform=`translate(${Math.sin(s*.4+i)*8}px,${-s*(2+i%3)}px)`;
     });
-    subtitle.style.opacity=String(smooth((s-7.6)/.4)*(1-smooth((s-10.65)/.25)));
-    if(Math.abs(t-lastUI)>60 || t===0 || t>=duration) {
+    subtitle.style.opacity=String(smooth((s-7.6)/.4)*(1-smooth((ending-10.65)/.25)));
+    if(Math.abs(t-lastUI)>60 || t===0 || t>=totalDuration) {
       lastUI=t;
       $('#ratio').textContent=`${(p*100).toFixed(2).padStart(5,'0')}%`;
       $('.sync-phase').textContent=s<6.5?'INITIALIZING':p<1?'SYNCHRONIZING':'SYNC COMPLETE';
       $('#timecode').textContent=`00:${String(Math.floor(s)).padStart(2,'0')}:${String(Math.floor(s%1*30)).padStart(2,'0')}`;
       slider.value=String(s);
-      $('#elapsed').innerHTML=`${s.toFixed(1).padStart(4,'0')} <span>/ 12.0s</span>`;
+      $('#elapsed').innerHTML=`${s.toFixed(1).padStart(4,'0')} <span>/ ${(totalDuration/1000).toFixed(1)}s</span>`;
       root.dataset.elapsed=s.toFixed(2);
-      root.dataset.stage=s>=11?'shutter':s<1.15?'pulse':s<4.18?'identity':s<4.74?'dispersing':s<5.08?'scattered':s<7.18?'drawing':s<7.43?'colorize':'portrait';
+      root.dataset.stage=closing?'shutter':s<1.15?'pulse':s<4.18?'identity':s<4.74?'dispersing':s<5.08?'scattered':s<7.18?'drawing':s<7.43?'colorize':'portrait';
     }
   }
   function updateButton() { pause.textContent=playing?'Pause':'Resume'; root.dataset.playing=String(playing); }
-  function stop() { playing=false; cancelAnimationFrame(frame); frame=0; updateButton(); }
+  function stop() { playing=false; cancelAnimationFrame(frame); frame=0; portraitMotion.pause(); updateButton(); }
   function finish(skipped=false) {
-    stop(); elapsed=duration; render(elapsed); completed=true;
+    stop(); elapsed=totalDuration; render(elapsed); completed=true;
     root.classList.add('finished'); root.dataset.completed='true';
     pause.textContent='Finished'; pause.disabled=true;
     $('.end-description').textContent=mode==='launch'?'Opening Codex...':skipped?'Intro skipped':'Intro complete';
@@ -261,8 +267,8 @@
   }
   function tick(now) {
     if(!playing)return;
-    elapsed=Math.min(duration,now-origin); render(elapsed);
-    if(elapsed>=duration){finish();return;}
+    elapsed=Math.min(totalDuration,now-origin); render(elapsed);
+    if(elapsed>=totalDuration){finish();return;}
     frame=requestAnimationFrame(tick);
   }
   function warmIdentityTexture(){
@@ -274,7 +280,7 @@
   }
   function play() {
     if(!loaded)return;
-    if(elapsed>=duration)elapsed=0;
+    if(elapsed>=totalDuration)elapsed=0;
     warmIdentityTexture();
     completed=false; root.classList.remove('finished'); root.dataset.completed='false';
     pause.disabled=false; origin=performance.now()-elapsed; playing=true;updateButton();
@@ -282,9 +288,9 @@
   }
   function replay(){revealed=false;hiddenPause=false;stop();elapsed=0;lastUI=-Infinity;render(0);play();}
   $('#replay').addEventListener('click',replay);$('.replay-end').addEventListener('click',replay);
-  pause.addEventListener('click',()=>{hiddenPause=false;if(playing){elapsed=Math.min(duration,performance.now()-origin);stop();render(elapsed);}else play();});
+  pause.addEventListener('click',()=>{hiddenPause=false;if(playing){elapsed=Math.min(totalDuration,performance.now()-origin);stop();render(elapsed);}else play();});
   $('.skip').addEventListener('click',()=>finish(true));
-  slider.addEventListener('input',()=>{hiddenPause=false;stop();elapsed=Number(slider.value)*1000;warmIdentityTexture();if(elapsed>=duration){finish();return;}lastUI=-Infinity;completed=false;root.classList.remove('finished');root.dataset.completed='false';pause.disabled=false;render(elapsed);});
+  slider.addEventListener('input',()=>{hiddenPause=false;stop();elapsed=Number(slider.value)*1000;warmIdentityTexture();if(elapsed>=totalDuration){finish();return;}lastUI=-Infinity;completed=false;root.classList.remove('finished');root.dataset.completed='false';pause.disabled=false;render(elapsed);});
   window.addEventListener('keydown',event=>{
     if((event.metaKey||event.ctrlKey)&&event.altKey&&event.code==='KeyB'){
       event.preventDefault();if(!$('#settings-dialog').open)openSettings();return;
@@ -295,7 +301,7 @@
   });
   document.addEventListener('visibilitychange',()=>{
     if(native)return;
-    if(document.hidden&&playing){elapsed=Math.min(duration,performance.now()-origin);hiddenPause=true;stop();}
+    if(document.hidden&&playing){elapsed=Math.min(totalDuration,performance.now()-origin);hiddenPause=true;stop();}
     else if(!document.hidden&&hiddenPause&&!completed){hiddenPause=false;play();}
   });
   // Narrow native bridge: the host may select launch mode or report its own launch error.
@@ -343,6 +349,11 @@
     await Promise.all([art,$('.avatar')].map(img=>img.decode()));
     paths=preparePaths(images.contours||window.CONTOUR_PATHS||[]);fragments=prepareFragments(paths);lastTrace=-1;
     if(!paths.length)throw new Error('Image contour data is missing');
+    const motionLength=await portraitMotion.load(images.artwork?null:assets.motion);
+    totalDuration=window.startupMotion.durationFor(motionLength);slider.max=String(totalDuration/1000);
+    document.querySelector('.preview-note').firstChild.textContent=`${(totalDuration/1000).toFixed(totalDuration===duration?0:1)} seconds - skip at any time`;
+    $('#replay').setAttribute('aria-label',`Replay the ${(totalDuration/1000).toFixed(1)}-second intro`);
+    root.dataset.duration=String(totalDuration/1000);
     for(const field of textFields)$(field.target).textContent=textValue(images,field);
     $('.boot-title').classList.toggle('long-title',Array.from(textValue(images,textFields[0])).length>6);
     send('background',{image:art.src,strength:images.wallpaperStrength??42});

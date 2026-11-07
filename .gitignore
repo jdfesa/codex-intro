@@ -9,9 +9,11 @@ shared/web/assets/bg2/
 platforms/macos/assets/codex-pink.png
 
 # Reference-video inspection is only used during local development.
+/tmp/
 tools/extract-reference.swift
 *.mp4
 !docs/media/codex-intro-demo.mp4
+!shared/web/media/intro-character.mp4
 *.mov
 *.log
 *.tmp

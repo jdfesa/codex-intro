@@ -4,20 +4,22 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { parseArgs } from 'node:util';
 import { pageTarget } from '../../shared/desktop/cdp.mjs';
 import { buildInjection } from '../../shared/desktop/payload.mjs';
 import { connectPipe } from '../../platforms/linux/cdp-pipe.mjs';
 import { desktopArgs, installInDesktop } from '../../platforms/linux/run.mjs';
 
 assert.equal(process.platform, 'linux', 'This smoke test requires Linux.');
-assert.ok(process.argv.slice(2).every(arg => arg === '--wayland'), 'Only --wayland is supported.');
-const wayland = process.argv.includes('--wayland');
+const { values } = parseArgs({ options: { wayland: { type: 'boolean' }, motion: { type: 'string' } } });
+const wayland = !!values.wayland;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const motion = values.motion ? 'data:video/mp4;base64,' + (await readFile(resolve(root, values.motion))).toString('base64') : undefined;
 const output = join(root, '.build', wayland ? 'linux-desktop-wayland' : 'linux-desktop-smoke');
 const profile = await mkdtemp(join(tmpdir(), 'codex-intro-smoke-'));
 await mkdir(output, { recursive: true });
@@ -63,9 +65,9 @@ try {
     return targetInfos.find(pageTarget);
   }, 'main desktop target');
   const { sessionId } = await pipe.call('Target.attachToTarget', { targetId: target.targetId, flatten: true });
-  async function evaluate(fn) {
+  async function evaluate(fn, ...args) {
     const response = await pipe.call('Runtime.evaluate', {
-      expression: `(${fn.toString()})()`, returnByValue: true, awaitPromise: true,
+      expression: `(${fn.toString()})(...${JSON.stringify(args)})`, returnByValue: true, awaitPromise: true,
     }, { sessionId });
     if (response.exceptionDetails) throw new Error(response.exceptionDetails.exception?.description ?? response.exceptionDetails.text);
     return response.result.value;
@@ -127,6 +129,9 @@ try {
       language: doc.documentElement.lang,
       subtitle: doc.querySelector('#subtitle').textContent,
       english: !/[\u3400-\u9fff]/u.test(doc.body.textContent),
+      portrait: { state: doc.querySelector('.artwork-motion').dataset.state,
+        duration: doc.querySelector('.artwork-motion').duration,
+        intro: Number(doc.querySelector('.window').dataset.duration) },
     };
   });
   assert.deepEqual(frame.dimensions.slice(0, 2), frame.dimensions.slice(2), 'Overlay must fill the viewport without resizing the app.');
@@ -143,10 +148,36 @@ try {
   assert.equal(frame.language, 'en');
   assert.equal(frame.subtitle, 'Ready to use.');
   assert.equal(frame.english, true);
+  assert.deepEqual(frame.portrait, { state: 'ready', duration: 6, intro: 14.18 }, 'The default installed payload must include the approved six-second clip.');
   const elapsed = () => evaluate(() => Number(document.getElementById('aemeath-extension-overlay')?.contentDocument.querySelector('.window')?.dataset.elapsed ?? 99));
+  const codeFrames = [];
   for (const [time, name] of [[2.8, '02-identity'], [5.7, '03-contours'], [8.5, '04-artwork']]) {
     await until(async () => await elapsed() >= time, `intro at ${time}s`, 15000);
+    const code = await evaluate(() => {
+      const win = document.getElementById('aemeath-extension-overlay').contentWindow;
+      const canvas = win.document.querySelector('.startup-code'), style = win.getComputedStyle(canvas);
+      return { lines: Number(canvas.dataset.lines), motion: canvas.dataset.motion,
+        opacity: Number(style.opacity), pointerEvents: style.pointerEvents,
+        painted: canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.some(value => value !== 0) };
+    });
+    assert.ok(code.lines > 0 && code.opacity > 0 && code.painted, 'The additive code layer must render inside the real desktop iframe.');
+    assert.equal(code.motion, 'full'); assert.equal(code.pointerEvents, 'none');
+    codeFrames.push(code);
     await screenshot(name);
+    if (time === 5.7) {
+      const deterministic = await evaluate(async () => {
+        const win = document.getElementById('aemeath-extension-overlay').contentWindow, doc = win.document;
+        const timeline = doc.getElementById('timeline'), canvas = doc.querySelector('.startup-code');
+        const seek = value => { timeline.value = String(value); timeline.dispatchEvent(new win.Event('input')); };
+        seek(5.7); const first = canvas.toDataURL();
+        await new Promise(resolve => win.setTimeout(resolve, 180));
+        const paused = first === canvas.toDataURL();
+        seek(2.8); seek(5.7); const replayed = first === canvas.toDataURL();
+        doc.getElementById('pause').click();
+        return { paused, replayed };
+      });
+      assert.deepEqual(deterministic, { paused: true, replayed: true }, 'Pause and backwards seeking must control the code layer too.');
+    }
   }
   const state = await until(() => evaluate(() => {
     const state = window.__aemeathExtension?.status();
@@ -228,8 +259,68 @@ try {
   assert.deepEqual(restored, { extension: false, style: false, overlay: false, skin: false });
   assert.deepEqual(await evaluate(() => window.__nativeSmokeMeasure()), baseline, 'Restore changed native sizing.');
   await screenshot('06-restored');
-  await writeFile(join(output, 'metrics.json'), JSON.stringify({ baseline, during, frame, state, responsive, stationary, restored }, null, 2));
-  console.log('PASS: Artificial Girl avatar, full intro, native sizing, six responsive wallpaper ratios, settings and Restore.');
+  await pipe.call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, { sessionId });
+  await installInDesktop(pipe, await buildInjection(root, { motion }));
+  const reducedCode = await evaluate(() => {
+    const win = document.getElementById('aemeath-extension-overlay').contentWindow, doc = win.document;
+    const canvas = doc.querySelector('.startup-code'), timeline = doc.getElementById('timeline');
+    const seek = value => { timeline.value = String(value); timeline.dispatchEvent(new win.Event('input')); };
+    seek(2); const first = canvas.toDataURL(); seek(8);
+    const video = doc.querySelector('.artwork-motion');
+    const result = { static: first === canvas.toDataURL(), motion: canvas.dataset.motion,
+      videoDisabled: !video.getAttribute('src'), duration: Number(doc.querySelector('.window').dataset.duration) };
+    doc.querySelector('.skip').click();
+    return result;
+  });
+  assert.deepEqual(reducedCode, { static: true, motion: 'reduced', videoDisabled: true, duration: 12 });
+  assert.equal(await evaluate(() => window.__aemeathExtension.status().overlay), false, 'Skip must remove the reduced-motion overlay.');
+  await evaluate(() => window.__aemeathExtension.dispose());
+  await pipe.call('Emulation.setEmulatedMedia', { features: [] }, { sessionId });
+  let portrait = null;
+  if (motion) {
+    await installInDesktop(pipe, await buildInjection(root, { motion }));
+    portrait = await evaluate(() => {
+      const win = document.getElementById('aemeath-extension-overlay').contentWindow, doc = win.document;
+      const video = doc.querySelector('.artwork-motion');
+      return { state: video.dataset.state, source: video.getAttribute('src')?.startsWith('blob:'),
+        duration: video.duration, intro: Number(doc.querySelector('.window').dataset.duration),
+        muted: video.muted, loop: video.loop, speed: video.playbackRate, fit: win.getComputedStyle(video).objectFit };
+    });
+    assert.equal(portrait.state, 'ready', 'Local motion must decode without weakening the real app CSP.');
+    assert.equal(portrait.source, true); assert.equal(portrait.muted, true); assert.equal(portrait.loop, false);
+    assert.equal(portrait.speed, 1); assert.equal(portrait.fit, 'contain');
+    assert.ok(portrait.intro >= 12 && portrait.intro < 24);
+    for (const [time, name] of [[8.2, '08-motion-opening'], [10.5, '09-motion-hair'], [12.7, '10-motion-ending']]) {
+      const fit = await evaluate(async time => {
+        const win = document.getElementById('aemeath-extension-overlay').contentWindow, doc = win.document;
+        const video = doc.querySelector('.artwork-motion'), timeline = doc.getElementById('timeline');
+        await new Promise(resolve => {
+          const done = () => { win.clearTimeout(timeout); video.removeEventListener('seeked', done); resolve(); };
+          const timeout = win.setTimeout(done, 1000);
+          video.addEventListener('seeked', done, { once: true });
+          timeline.value = String(time); timeline.dispatchEvent(new win.Event('input'));
+        });
+        await new Promise(resolve => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+        return { paused: video.paused, time: video.currentTime, opacity: Number(win.getComputedStyle(video).opacity) };
+      }, time);
+      assert.equal(fit.paused, true); assert.ok(fit.opacity > 0);
+      await screenshot(name);
+    }
+    const playback = await evaluate(async () => {
+      const win = document.getElementById('aemeath-extension-overlay').contentWindow, doc = win.document;
+      const video = doc.querySelector('.artwork-motion'), timeline = doc.getElementById('timeline');
+      timeline.value = '9'; timeline.dispatchEvent(new win.Event('input'));
+      doc.getElementById('pause').click(); const before = video.currentTime;
+      await new Promise(resolve => win.setTimeout(resolve, 400));
+      return { advances: video.currentTime > before + .2, playing: !video.paused };
+    });
+    assert.deepEqual(playback, { advances: true, playing: true });
+    await until(() => evaluate(() => window.__aemeathExtension.status().completed), 'optional portrait completion', 20000);
+    assert.equal(await evaluate(() => !!document.querySelector('video, #aemeath-extension-overlay')), false);
+    await evaluate(() => window.__aemeathExtension.dispose());
+  }
+  await writeFile(join(output, 'metrics.json'), JSON.stringify({ baseline, during, frame, codeFrames, reducedCode, portrait, state, responsive, stationary, restored }, null, 2));
+  console.log('PASS: Additive code, pause/seek, reduced motion, full intro, native sizing, six wallpaper ratios, settings and Restore.');
   console.log('Screenshots and metrics:', output);
 } finally {
   pipe.close();

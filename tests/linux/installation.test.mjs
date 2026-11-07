@@ -64,7 +64,7 @@ test('install/update/uninstall restores exact user bytes and mode without touchi
   assert.equal(Buffer.from(backup.data, 'base64').toString(), original);
   assert.equal((await install(opts)).updated, true);
   assert.deepEqual((await readInstallation(paths)).originalUser, backup);
-  for (const path of ['shared/web/assets/artificial-girl-avatar.jpg', 'shared/web/assets/artwork.jpg', 'platforms/linux/run.mjs', 'platforms/linux/close-codex.sh', 'launch.sh', 'uninstall.sh', 'close-codex.sh']) {
+  for (const path of ['shared/web/assets/artificial-girl-avatar.jpg', 'shared/web/assets/artwork.jpg', 'shared/web/media/intro-character.mp4', 'shared/web/startup-code.js', 'shared/web/startup-motion.js', 'platforms/linux/run.mjs', 'platforms/linux/close-codex.sh', 'launch.sh', 'uninstall.sh', 'close-codex.sh']) {
     await access(join(paths.installDir, path));
   }
   await assert.rejects(access(join(paths.installDir, 'platforms/macos')), { code: 'ENOENT' });

@@ -14,6 +14,7 @@ DSH uses its own overlay interface and cannot be installed directly into Codex. 
 
 - The default avatar, `shared/web/assets/artificial-girl-avatar.jpg`, is a bundled cybernetic workstation illustration. See [asset notes](artificial-girl-avatar.md) for dimensions and display behavior. It is used only inside the intro and does not replace the installed app icon. Its inclusion does not imply a separate redistribution license.
 - The default background, `shared/web/assets/artwork.jpg`, was resized and center-cropped from a local source image. The runtime background is 1536 × 1024, with matching contour coordinates in the same canvas space.
+- The portrait clip, `shared/web/media/intro-character.mp4`, is an image-to-video animation generated with Gemini from the background reference and trimmed to its first six seconds. It is 1280 × 720 H.264 at 24 fps, contains no audio track, and plays once at normal speed during the intro. The original JPG remains the persistent wallpaper and static fallback. Its inclusion does not establish additional rights to the underlying artwork.
 - `shared/web/assets/contours.js` was generated from the current runtime background with the same edge tracer used for custom imports. The macOS asset preparation tool can also regenerate default contours using Vision.
 - The pink launcher icon is a recolored version of the original flower-shaped logo and is used to distinguish the personal launcher.
 - The animation uses HTML, CSS, Canvas, and SVG. It has no soundtrack or remote font, CDN, or image requests.
