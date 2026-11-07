@@ -11,6 +11,7 @@ platforms/macos/assets/codex-pink.png
 # Reference-video inspection is only used during local development.
 tools/extract-reference.swift
 *.mp4
+!docs/media/codex-intro-demo.mp4
 *.mov
 *.log
 *.tmp

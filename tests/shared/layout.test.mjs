@@ -57,6 +57,16 @@ test('public documentation links resolve and README delegates detailed guides', 
   }
 });
 
+test('README presents a centered GitHub video attachment with a local download', async () => {
+  const readme = await readFile(join(root, 'README.md'), 'utf8');
+  assert.match(readme, /^# Codex Intro\n/);
+  assert.match(readme, /<div align="center">\n\nhttps:\/\/github\.com\/user-attachments\/assets\/[a-f0-9-]+\n\n<\/div>/);
+  assert.match(readme, /\[Download the demo\]\(docs\/media\/codex-intro-demo\.mp4\)/);
+  assert.doesNotMatch(readme, /intro-preview\.png/);
+  // GitHub must generate the player itself rather than strip a raw video tag.
+  assert.doesNotMatch(readme, /<video\b/i);
+});
+
 test('standalone web resources resolve relative to the shared entry point', async () => {
   const html = await readFile(join(root, 'shared/web/index.html'), 'utf8');
   for (const match of html.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
