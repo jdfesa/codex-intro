@@ -29,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         let available = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let width = min(1000, available.width - 80, (available.height - 80) * 1.52)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: width / 1.52), styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
-        window.title = "Codex Intro - 12-second startup animation"
+        window.title = "Codex Intro - cinematic startup animation"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false

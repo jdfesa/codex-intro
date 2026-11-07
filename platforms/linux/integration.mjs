@@ -13,8 +13,9 @@ const marker = 'codex-intro-linux';
 const commandMarker = '# codex-intro-linux: managed terminal launcher';
 const commandNames = ['gpt', 'chatgpt'];
 const runtimeFiles = [
-  'shared/web/index.html', 'shared/web/style.css', 'shared/web/animation.js', 'shared/web/image-settings.js', 'platforms/linux/close-codex.sh',
+  'shared/web/index.html', 'shared/web/style.css', 'shared/web/animation.js', 'shared/web/image-settings.js', 'shared/web/startup-code.js', 'shared/web/startup-motion.js', 'platforms/linux/close-codex.sh',
   'shared/web/assets/artificial-girl-avatar.jpg', 'shared/web/assets/artwork.jpg', 'shared/web/assets/contours.js',
+  'shared/web/media/intro-character.mp4',
   'shared/web/fonts.css', 'shared/web/assets/fonts/special-elite-regular.ttf', 'shared/web/assets/fonts/ocr-a.ttf',
   'shared/web/assets/fonts/special-elite-license.txt', 'shared/web/assets/fonts/ocr-a-notice.txt',
   'shared/desktop/cdp.mjs', 'shared/desktop/payload.mjs', 'shared/desktop/renderer.mjs', 'shared/desktop/wallpaper.css',

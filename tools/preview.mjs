@@ -1,11 +1,15 @@
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
-import {dirname,join} from 'node:path';
+import {dirname,join,resolve} from 'node:path';
+import {parseArgs} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {buildInjection} from '../shared/desktop/payload.mjs';
 const root=dirname(dirname(fileURLToPath(import.meta.url))),out=join(root,'.build/desktop-preview');
+const {values}=parseArgs({options:{motion:{type:'string'},still:{type:'boolean'}}});
+if(values.motion&&values.still)throw new Error('Choose --motion or --still, not both.');
+const motion=values.still?false:values.motion?'data:video/mp4;base64,'+(await readFile(resolve(root,values.motion))).toString('base64'):undefined;
 await mkdir(out,{recursive:true});
 const template=await readFile(join(root,'tests/fixtures/desktop-host.html'),'utf8');
 await writeFile(join(out,'index.html'),template.replace('<div class="test-controls">','<output id="test-status" style="position:fixed;bottom:0;left:0;z-index:2147483647;font-size:10px"></output><div class="test-controls">'));
-await writeFile(join(out,'extension.js'),await buildInjection(root));
+await writeFile(join(out,'extension.js'),await buildInjection(root,{motion}));
 await writeFile(join(out,'controls.js'),`document.querySelector('#restore').addEventListener('click',()=>window.__aemeathExtension?.dispose());document.querySelector('#settings').addEventListener('click',()=>window.__aemeathExtension?.openSettings());document.querySelector('#ready').addEventListener('click',event=>event.target.textContent='Button works');setInterval(()=>document.querySelector('#test-status').textContent=JSON.stringify(window.__aemeathExtension?.status()||{disposed:true}),500);`);
 console.log(out);

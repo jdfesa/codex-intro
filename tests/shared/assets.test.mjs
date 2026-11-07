@@ -4,6 +4,7 @@ import { access, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
+import { createHash } from 'node:crypto';
 import { buildInjection } from '../../shared/desktop/payload.mjs';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -18,6 +19,17 @@ test('default assets contain one runtime artwork and the new Artificial Girl ava
   for (const file of ['assets/avatar.jpg', 'assets/codex-evil-avatar.jpg', 'assets/artwork.jpeg']) {
     await assert.rejects(access(join(root, file)), { code: 'ENOENT' });
   }
+});
+
+test('the approved six-second silent portrait is versioned under runtime media', async () => {
+  const bytes = await readFile(join(root, 'shared/web/media/intro-character.mp4'));
+  assert.equal(bytes.subarray(4, 8).toString(), 'ftyp');
+  assert.equal(bytes.length, 1728244);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), 'eb083580580f877677fbd97446e2472d633aac43a7ceb826bc7e96a6fee7b412');
+  const ignores = await read('.gitignore');
+  assert.match(ignores, /^\/tmp\/$/m);
+  assert.match(ignores, /^!shared\/web\/media\/intro-character\.mp4$/m);
+  assert.match(await read('shared/web/animation.js'), /motion:'media\/intro-character\.mp4'/);
 });
 
 test('browser, shared payload and macOS packaging share the canonical avatar', async () => {

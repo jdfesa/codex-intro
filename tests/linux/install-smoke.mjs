@@ -87,7 +87,8 @@ try {
     await delay(800);
     assert.equal(await profilePid(), firstPid, 'A second icon click must reuse the existing app.');
     assert.equal((await log()).split('Startup animation is playing.').length - 1, cycle);
-    await delay(12500);
+    // Let the complete 14.18-second bundled intro finish before checking the pipe holder.
+    await delay(14500);
     assert.equal(await running(pid), true, 'Desktop launcher must hold the pipe open after playback.');
     await closeTestApp();
   }
