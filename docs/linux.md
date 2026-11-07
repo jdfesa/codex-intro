@@ -31,10 +31,22 @@ node platforms/linux/integration.mjs status
 node platforms/linux/integration.mjs status --json
 ```
 
+## Terminal shortcuts
+
+Run `gpt` (short name) or `chatgpt` from any directory. These commands only forward arguments to the installed intro; they do not create a second app or profile.
+
+- Commands: `~/.local/bin/gpt` and `~/.local/bin/chatgpt`.
+- Both point to `~/.local/share/codex-intro/launch.sh` (default XDG data path).
+- They are executable shortcuts, not Zsh-only aliases. Keep `~/.local/bin` before `/usr/bin` in `PATH`.
+- If an existing terminal cached the old command, run `rehash` (Zsh) or `hash -r` (Bash) once.
+
+A running app is activated without replaying the intro; fully quit before testing a cold start. Install/update creates the commands; uninstall removes them or restores their original backups.
+
 ## Installed files
 
 | Default path | Purpose |
 | --- | --- |
+| `~/.local/bin/gpt`, `~/.local/bin/chatgpt` | Working-directory-independent terminal entry points |
 | `~/.local/share/codex-intro/` | Self-contained runtime snapshot |
 | `~/.local/share/codex-intro/launch.sh` | Stable desktop/shortcut entry point |
 | `~/.local/share/codex-intro/uninstall.sh` | Stable uninstaller, independent of checkout |
@@ -57,7 +69,7 @@ Use **Uninstall startup intro** in the app icon's context menu where desktop act
 ~/.local/share/codex-intro/uninstall.sh
 ```
 
-Fully quit and reopen the app afterward. Uninstall restores the first original user launcher exactly, or removes the override to reveal the system entry. Saved mod customization remains local. Later user edits are preserved rather than overwritten; see [recovery](../TROUBLESHOOTING.md#uninstall-or-update-refuses-to-overwrite-a-launcher).
+Fully quit and reopen the app afterward. Uninstall removes both managed terminal commands (or restores their first original bytes and modes) and restores the first original user desktop launcher exactly, or removes the override to reveal the system entry. Saved mod customization remains local. Later user edits are preserved rather than overwritten; see [recovery](../TROUBLESHOOTING.md#uninstall-or-update-refuses-to-overwrite-a-launcher).
 
 ## Manual one-session launch
 

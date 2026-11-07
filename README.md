@@ -28,6 +28,8 @@ From a local checkout:
 
 Fully quit the desktop app, then open its **normal app icon**. No terminal needs to remain open. Installation is per-user, requires no `sudo`, and preserves the existing profile and sign-in.
 
+For terminal access, run **`gpt`** or `chatgpt` from any directory. Both are shortcuts to the installed intro, not a separate application. See [terminal shortcuts and paths](docs/linux.md#terminal-shortcuts).
+
 To quit completely on Linux, save your work and run [`./platforms/linux/close-codex.sh`](platforms/linux/close-codex.sh). Without the checkout, use `~/.local/share/codex-intro/close-codex.sh` (default XDG data path).
 
 To uninstall, run the installed helper, then fully quit and reopen the app:

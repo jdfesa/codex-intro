@@ -19,7 +19,8 @@ Do not delete `SingletonLock`, reset the profile, or sign out to troubleshoot th
 - Check installation with `node platforms/linux/integration.mjs status`.
 - Fully quit before reopening. A second icon click activates the running app without replaying the intro.
 - Rerun `./platforms/linux/install.sh` after changing or updating this checkout: the installed runtime is an independent copy.
-- Shortcuts that call the `chatgpt` binary directly bypass the mod. Point them at `~/.local/share/codex-intro/launch.sh` or the managed desktop entry.
+- Reinstall to add the real `gpt` and `chatgpt` commands in `~/.local/bin`. Ensure that directory precedes `/usr/bin` in `PATH`; use `rehash` (Zsh) or `hash -r` (Bash) if a terminal cached the old command. Shell aliases alone do not cover already-open or noninteractive shells.
+- Shortcuts that explicitly call `/usr/bin/chatgpt` bypass the mod. Point them at `~/.local/share/codex-intro/launch.sh` or the managed desktop entry.
 - For a differently named desktop entry, use `--desktop-id` as described in the [Linux guide](docs/linux.md).
 
 Paths above assume default XDG directories. Some desktops cache pinned launchers; unpin and re-add the existing app entry if a stale shortcut remains.
