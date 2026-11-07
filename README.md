@@ -1,14 +1,10 @@
-
-
-https://github.com/user-attachments/assets/43814138-bf43-4969-bcf9-5fdd622d1ff6
-
 # Codex Intro
 
 **A cinematic startup, then a quiet workspace.** An unofficial visual mod for the Codex / ChatGPT desktop app: a skippable 12-second intro followed by an optional translucent wallpaper.
 
 <div align="center">
 
-https://github.com/user-attachments/assets/5b5a43a5-4582-4e8d-a33d-df2054398fc2
+https://github.com/user-attachments/assets/43814138-bf43-4969-bcf9-5fdd622d1ff6
 
 </div>
 
