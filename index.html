@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>Codex Intro - 12-second startup animation</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="assets/contours.js" defer></script>
+  <script src="image-settings.js" defer></script>
+  <script src="animation.js" defer></script>
+</head>
+<body>
+  <main class="preview">
+    <header class="preview-heading"><span><i></i> CODEX INTRO</span><span>STARTUP SEQUENCE / 01</span></header>
+    <section class="window" aria-label="Codex Intro">
+      <div class="end-screen" aria-live="polite">
+        <span class="end-star">✧</span>
+        <p class="eyebrow">CONNECTION ESTABLISHED</p>
+        <h1>Ready when you are.</h1>
+        <p class="end-description">Startup preview complete</p>
+        <button class="replay-end" type="button">Replay <span>↻</span></button>
+      </div>
+      <div class="scene" aria-hidden="true">
+        <img class="artwork" src="assets/artwork.jpg" alt="" decoding="async" fetchpriority="high">
+        <canvas class="line-art" width="1536" height="1024"></canvas>
+        <div class="shade"></div>
+        <div class="scanlines"></div>
+        <div class="light-sweep"></div>
+        <div class="particles"></div>
+        <div class="hud">
+          <div class="corner top-left"></div><div class="corner top-right"></div>
+          <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
+          <div class="sync">
+            <div class="sync-label"><span>SYNC RATIO</span><span id="ratio">00.00%</span></div>
+            <div class="sync-track"><div class="sync-fill"></div></div>
+            <span class="sync-phase">INITIALIZING</span>
+          </div>
+          <div class="subtitle"><span id="subtitle">Ready to build.</span></div>
+          <div class="coordinates"><span>RESONANCE / CODEX</span><span id="timecode">00:00:00</span></div>
+        </div>
+        <div class="boot-grid"></div>
+        <div class="boot-corners"><i class="corner top-left"></i><i class="corner top-right"></i><i class="corner bottom-left"></i><i class="corner bottom-right"></i></div>
+        <div class="intro">
+          <div class="pulse"><i></i><i></i><b></b></div>
+          <div class="identity">
+            <div class="radar">
+              <svg class="dial" viewBox="0 0 400 400"><circle cx="200" cy="200" r="177"/><circle class="dashed" cx="200" cy="200" r="151"/><g class="ticks"></g><path class="crosshair" d="M200 9V61 M200 339V391 M9 200H61 M339 200H391"/></svg>
+              <div class="avatar-frame"><img class="avatar" src="assets/artificial-girl-avatar.jpg" alt="" decoding="async"></div>
+              <i class="reticle tl"></i><i class="reticle tr"></i><i class="reticle bl"></i><i class="reticle br"></i>
+            </div>
+            <svg class="wave" viewBox="0 0 400 22"><path d="M0 11 Q15 5 30 11 T60 11 T90 11 T120 11 T150 11 T180 11 T210 11 T240 11 T270 11 T300 11 T330 11 T360 11 T400 11"/></svg>
+            <div class="boot-title">ARTIFICIAL GIRL</div>
+            <div class="boot-caption">CODEX INITIALIZE / TYPE-0</div>
+          </div>
+        </div>
+        <div class="boot-logs"><div>&gt; MAGI SYSTEM · CASPER / MELCHIOR / BALTHASAR</div><div>&gt; loading renderer surface ........ ok</div><div>&gt; entry plug depth 21.6 ........... ok</div><div>&gt; LCL pressure nominal</div></div>
+        <div class="transition-flash" aria-hidden="true"></div>
+      </div>
+      <div class="shutter-line" aria-hidden="true"></div>
+      <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+      <button id="image-settings" type="button">Appearance settings</button>
+      <button class="skip" type="button" title="Skip intro (Esc)" aria-label="Skip intro">CLICK / ESC TO SKIP</button>
+      <p id="asset-error" hidden>Could not load intro assets. Check that the assets directory is complete.</p>
+      <dialog id="settings-dialog" aria-labelledby="settings-title">
+        <form method="dialog"><button class="settings-close" aria-label="Close appearance settings">×</button></form>
+        <p class="eyebrow">YOUR STARTUP</p><h2 id="settings-title">Customize your intro</h2>
+        <p class="settings-description">Choose images and edit the intro text. Leave a field blank to hide it.</p>
+        <div class="image-choices">
+          <label class="image-choice"><img id="avatar-preview" src="assets/artificial-girl-avatar.jpg" alt="Current avatar"><span>Opening avatar</span><small>Square images work best</small><span class="choose-label">Choose avatar</span><input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Choose avatar"></label>
+          <label class="image-choice"><img id="artwork-preview" src="assets/artwork.jpg" alt="Current background"><span>Background artwork</span><small>Full image preserved; contours generated automatically</small><span class="choose-label">Choose background</span><input id="artwork-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Choose background"></label>
+        </div>
+        <div class="text-settings">
+          <label for="intro-title">Opening title<input id="intro-title" type="text" maxlength="16" autocomplete="off"><small>Up to 16 characters</small></label>
+          <label for="intro-caption">Opening caption<input id="intro-caption" type="text" maxlength="48" autocomplete="off"><small>Up to 48 characters</small></label>
+          <label class="text-wide" for="artwork-subtitle">Artwork subtitle<input id="artwork-subtitle" type="text" maxlength="60" autocomplete="off"><small>Up to 60 characters</small></label>
+        </div>
+        <label class="wallpaper-setting" for="wallpaper-strength"><span>Wallpaper strength</span><output id="wallpaper-value">42%</output><input id="wallpaper-strength" type="range" min="0" max="75" step="1" value="42"><small>The full image stays visible after the intro. Set 0% to disable the wallpaper.</small></label>
+        <p id="settings-status" role="status">Images stay on this device and are never uploaded. Backgrounds fit without cropping.</p>
+        <div class="settings-actions"><button id="reset-images" type="button">Use defaults</button><button id="preview-images" type="button">Save and preview</button></div>
+        <button id="restore-appearance" type="button" hidden>Restore Codex appearance</button>
+      </dialog>
+    </section>
+    <footer class="controls">
+      <div class="playback-buttons"><button id="replay" type="button" aria-label="Replay the 12-second intro">↻ <span>Replay</span></button><button id="pause" type="button">Pause</button></div>
+      <input id="timeline" aria-label="Intro timeline" type="range" min="0" max="12" step="0.01" value="0">
+      <output id="elapsed">00.0 <span>/ 12.0s</span></output>
+      <button class="native-launch" type="button" hidden>Play and open Codex ↗</button>
+    </footer>
+    <p class="preview-note">12 seconds - skip at any time<span>The percentage indicates animation progress</span></p>
+  </main>
+</body>
+</html>
