@@ -57,11 +57,13 @@ test('public documentation links resolve and README delegates detailed guides', 
   }
 });
 
-test('README presents a centered GitHub video attachment with a local download', async () => {
+test('README presents a centered GitHub video attachment without a download link', async () => {
   const readme = await readFile(join(root, 'README.md'), 'utf8');
   assert.match(readme, /^# Codex Intro\n/);
   assert.match(readme, /<div align="center">\n\nhttps:\/\/github\.com\/user-attachments\/assets\/[a-f0-9-]+\n\n<\/div>/);
-  assert.match(readme, /\[Download the demo\]\(docs\/media\/codex-intro-demo\.mp4\)/);
+  assert.equal([...readme.matchAll(/https:\/\/github\.com\/user-attachments\/assets\/[a-f0-9-]+/g)].length, 1);
+  assert.doesNotMatch(readme, /\[[^\]]*\]\([^)]*\.mp4(?:[?#][^)]*)?\)/i);
+  assert.doesNotMatch(readme, /Download the demo/i);
   assert.doesNotMatch(readme, /intro-preview\.png/);
   // GitHub must generate the player itself rather than strip a raw video tag.
   assert.doesNotMatch(readme, /<video\b/i);
